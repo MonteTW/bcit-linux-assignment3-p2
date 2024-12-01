@@ -1,6 +1,32 @@
-This is an instruction to help you who has a droplet with Arch Linux operating system to implement the modules `nginx` as the server, and `ufw` as the firewall on your droplet with a script that will automatically generate a html file that displays some basic information of the droplet's system and hold it on the IP address of your droplet.
+This is an instruction to help you who want to build a website with a basic file system that consisted by two droplets and a load balancer with Arch Linux operating system implementing the modules `nginx` as the server, and `ufw` as the firewall on your droplets. <br>
+The script will automatically generate a html file that displays some basic information of each droplet's system and hold it on the IP address of your droplet, can be reached by linking to the IP address of the load balancer.
 
 ## Prerequisites
+
+### Download and Upload the Latest Arch Linux Image
+1. Go to https://gitlab.archlinux.org/archlinux/arch-boxes/-/packages
+2. Download the file that has the `qcow2` extension
+3. Upload the image to [DigitalOcean](https://cloud.digitalocean.com/) at `Backups & Snapshots` under `Manage`
+### Create Droplets
+Create two new droplets with settings below:<br>
+1. Region: SFO3 (closest to you)
+2. Select the custom image we just uploaded
+3. Size and CPU: Basic Regular $4/month
+4. SSH key: Select the one you want to connect to it (or select all to make it easy)
+5. Tags: web
+6. Project: depend on you
+### Create Load Balancer
+A load balancer can distribute traffic across multiple servers to enhance the availability, reliability, and scalability of applications by balancing the load, which helps prevent downtime and improves performance. 
+#### Create the Load Balancer
+Go to the `Network` under `Manage` in DigitalOcean and click `Create Load Balancer`. Setting as below:<br>
+1. Type: Regional
+2. Datacenter: San Francisco 3 (same as your droplets)
+3. Network: External
+4. Connect Droplets: web (by using the tag)
+5. Name: Give it a unique name
+6. Project: Same as your droplets
+7. Others: stay default
+### For Each Droplet
 1. Update your operating system by running
 ```bash
 sudo pacman -Syu
@@ -23,6 +49,7 @@ sudo pacman -S ufw
 ```
 
 ## Files
+The files should be cloned to your droplets:<br>
 1. generate_index<br>
    The script that automatically generates index.html.
 2. generate-index.service<br>
@@ -33,8 +60,11 @@ sudo pacman -S ufw
    The `nginx` config file that should be copied to `/etc/nginx/nginx.conf`   
 5. index.conf<br>
    The server block file that should be copied to `/etc/nginx/sites-available` and make a symbolic link to `/etc/nginx/sites-enabled`
-6. screenshot.png<br>
-   The success screenshot of the index.html output by link to the IP address through a browser.
+
+6. file-one<br>
+   An example file that you should put inside the `documents` folder and see it when link to the file system
+7. file-two<br>
+   An example file that you should put inside the `documents` folder and see it when link to the file system
 
 ## Tutorial
 ### Step 1: Create a System User
@@ -59,6 +89,7 @@ Use `mkdir` to create the directories `bin` and `HTML` inside `/var/lib/webgen` 
 ```
 /var/lib/webgen/
 ├── bin
+├── documents
 └── HTML
 ```
 
@@ -210,25 +241,7 @@ Check the firewall is activated
 sudo ufw status verbose
 ```
 
-## Extra: Script Enhancement
-Adding additional system information
-1. Ram usage
-```bash
-free -m
-```
-By using the command we can see the basic ram usage of the system, and use `>>` to append information after the original information section.<br>
 
-Use `awd` to print the second line to the output file with positional parameters to specify the information we need.<br>
-   
-2. Disk usage
-```bash
-df -h | head -n 4
-```
-By using the command we can see the disk usage of the system, and use `>>` to append information after the ram usage section.<br>
-
-Since only top 4 lines of the information contains disk usage from the system, we show only the top 4 lines by using `head -n 4` to reach the result.<br>
-
-Use `awd` to print the lines after the title line to the output file with positional parameters to specify the information we need.<br>
 
 
 load balancer
