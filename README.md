@@ -17,7 +17,7 @@ Create two new droplets with settings below:<br>
 6. Project: depend on you
 ### Create Load Balancer
 A load balancer can distribute traffic across multiple servers to enhance the availability, reliability, and scalability of applications by balancing the load, which helps prevent downtime and improves performance. 
-#### Create the Load Balancer
+#### Load Balancer Setting
 Go to the `Network` under `Manage` in DigitalOcean and click `Create Load Balancer`. Setting as below:<br>
 1. Type: Regional
 2. Datacenter: San Francisco 3 (same as your droplets)
@@ -140,6 +140,7 @@ sudo chown -R webgen:webgen /var/lib/webgen
 Script file `generate_index` at `/var/lib/webgen/bin` will generate `index.html` to `/var/lib/webgen/HTML` 
 ```bash
 #!/bin/bash
+#!/bin/bash
 
 set -euo pipefail
 
@@ -151,16 +152,14 @@ KERNEL_RELEASE=$(uname -r)
 OS_NAME=$(grep '^PRETTY_NAME' /etc/os-release | cut -d '=' -f2 | tr -d '"')
 DATE=$(date +"%d/%m/%Y")
 PACKAGE_COUNT=$(pacman -Q | wc -l)
+PUBLIC_IP_ADRESS=$(ip -4 a show dev eth0 | grep inet | awk '{print $2}' | cut -d/ -f1)
 OUTPUT_DIR="/var/lib/webgen/HTML"
 OUTPUT_FILE="$OUTPUT_DIR/index.html"
 
-MEMORY_INFO=$(free -m)
-DISK_INFO=$(df -h | head -n 4)
-
 # Ensure the target directory exists
 if [[ ! -d "$OUTPUT_DIR" ]]; then
-        echo "Error: Failed to create or access directory $OUTPUT_DIR." >&2
-        exit 1
+    echo "Error: Failed to create or access directory $OUTPUT_DIR." >&2
+    exit 1
 fi
 
 # Create the index.html file
@@ -168,82 +167,27 @@ cat <<EOF > "$OUTPUT_FILE"
 <!DOCTYPE html>
 <html lang="en">
 <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>System Information</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Information</title>
 </head>
 <body>
-        <h1>System Information</h1>
-        <p><strong>Kernel Release:</strong> $KERNEL_RELEASE</p>
-        <p><strong>Operating System:</strong> $OS_NAME</p>
-        <p><strong>Date:</strong> $DATE</p>
-        <p><strong>Number of Installed Packages:</strong> $PACKAGE_COUNT</p>
-EOF
-
-# add MEMORY_INFO table
-cat <<EOF >> "$OUTPUT_FILE"
-        <h2>Memory Information</h2>
-        <table border="1" style="border-collapse: collapse">
-        <tr>
-            <th>Total</th>
-            <th>Used</th>
-            <th>Free</th>
-            <th>Shared</th>
-            <th>Buff/Cache</th>
-            <th>Available</th>
-        </tr>
-EOF
-
-echo "$MEMORY_INFO" | awk 'NR==2 {
-        print "         <tr>"
-        print "                 <td>" $2 " MB</td>"
-        print "                 <td>" $3 " MB</td>"
-        print "                 <td>" $4 " MB</td>"
-        print "                 <td>" $5 " MB</td>"
-        print "                 <td>" $6 " MB</td>"
-        print "                 <td>" $7 " MB</td>"
-        print "         </tr>"
-        print " </table>"
-}' >> "$OUTPUT_FILE"
-
-# add DISK_INFO table
-cat <<EOF >> "$OUTPUT_FILE"
-        <h2>Disk Usage</h2>
-        <table border="1" style="border-collapse: collapse">
-        <tr>
-                <th>Filesystem</th>
-                <th>Size</th>
-                <th>Used</th>
-                <th>Available</th>
-                <th>Use%</th>
-                <th>Mounted On</th>
-        </tr>
-EOF
-
-echo "$DISK_INFO" | awk 'NR>1 {
-        print " <tr>"
-        print "                 <td>" $1 "</td>"
-        print "                 <td>" $2 "</td>"
-        print "                 <td>" $3 "</td>"
-        print "                 <td>" $4 "</td>"
-        print "                 <td>" $5 "</td>"
-        print "                 <td>" $6 "</td>"
-        print " </tr>"
-}' >> "$OUTPUT_FILE"
-
-# add the closing tag of bod and html
-cat <<EOF >> "$OUTPUT_FILE"
-        </table>
+    <h1>System Information</h1>
+    <p><strong>Kernel Release:</strong> $KERNEL_RELEASE</p>
+    <p><strong>Operating System:</strong> $OS_NAME</p>
+    <p><strong>Date:</strong> $DATE</p>
+    <p><strong>Number of Installed Packages:</strong> $PACKAGE_COUNT</p>
+    <p><strong>Public IP address of server:</strong> $PUBLIC_IP_ADRESS</p>
 </body>
 </html>
 EOF
 
 # Check if the file was created successfully
 if [ $? -eq 0 ]; then
-        echo "Success: File created at $OUTPUT_FILE."
+    echo "Success: File created at $OUTPUT_FILE."
 else
-        echo "Error: Failed to create the file at $OUTPUT_FILE." >&2
-        exit 1
+    echo "Error: Failed to create the file at $OUTPUT_FILE." >&2
+    exit 1
 fi
 
 ```
@@ -426,6 +370,7 @@ systemctl status nginx
 
 >**Why is it important to use a separate server block file instead of modifying the main `nginx.conf` file directly?**
 >
+>It is possible to serve multiple domains using `server` blocks.
 >By putting different `server` blocks in different files. This allows you to easily enable or disable certain sites.
 >
 >we can disable a site by unlink the active symbolic link:
